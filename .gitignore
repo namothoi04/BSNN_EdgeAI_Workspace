@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Môi trường ảo (Virtual Environments)
+venv/
+.venv/
+env/
+bin/
+lib/
+develop-eggs/
+dist/
+eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+
+# Dữ liệu và Dataset (Quan trọng)
+# Không nên đưa dữ liệu thô lên GitHub để tránh làm nặng repo
+data/
+datasets/
+*.zip
+*.tar.gz
+
+# Kết quả huấn luyện và Checkpoints
+# Các file .pt hoặc .pth thường rất nặng
+*.pt
+*.pth
+runs/
+runs_mnist_cnn_clean/
+out/
+checkpoints/
+
+# Log dữ liệu và lịch sử huấn luyện
+*.npy
+*.log
+*.sqlite
+
+# IDE và Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Báo cáo và file tạm
+~$*.docx
+*.tmp

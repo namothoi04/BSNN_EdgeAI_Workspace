@@ -1,8 +1,0 @@
-numpy
-tensorflow
-matplotlib
-opencv-python
-scikit-learn
-torch 
-torchvision 
-torchaudio

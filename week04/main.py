@@ -1,5 +1,5 @@
 """
-mnist_cnn_baseline_clean.py
+main.py
 
 CNN baseline tối giản cho MNIST (PyTorch)
 - Kiến trúc gọn: Conv -> ReLU -> MaxPool -> Flatten -> Linear
@@ -7,10 +7,11 @@ CNN baseline tối giản cho MNIST (PyTorch)
 - Phù hợp cho người mới nhập môn
 
 Cách chạy:
-    python mnist_cnn_baseline_clean.py
+    python main.py
 
 Tùy chọn:
-    python mnist_cnn_baseline_clean.py --epochs 10 --batch_size 32 --lr 0.001
+    xem tùy chọn: python main.py -help
+    python main.py --epochs 10 --batch_size 32 --lr 0.001
 """
 
 import argparse
@@ -21,6 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
@@ -243,46 +245,42 @@ def plot_history(history, save_dir: Path):
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
     # Accuracy
-    plt.figure(figsize=(8, 5))
-    plt.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
-    plt.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
-    best_epoch = int(np.argmax(history["val_acc"])) + 1
+    ax1.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
+    ax1.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
+    best_epoch_acc = int(np.argmax(history["val_acc"])) + 1
     best_acc = float(np.max(history["val_acc"]))
-    plt.annotate(
-        f"Best Val: {best_acc*100:.2f}% @ epoch {best_epoch}",
-        xy=(best_epoch, best_acc),
-        xytext=(best_epoch, best_acc)
-    )
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.title("MNIST CNN Baseline - Accuracy")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(save_dir / "mnist_cnn_acc.png", dpi=150)
-    plt.savefig(save_dir / "mnist_cnn_acc.svg")
-    plt.close()
+    ax1.axvline(x=best_epoch_acc, color='gray', linestyle='--', alpha=0.5)
+    ax1.annotate(f"Best: {best_acc*100:.2f}%", xy=(best_epoch_acc, best_acc),
+                 xytext=(best_epoch_acc - 1.5, best_acc - 0.05),
+                 arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
+    ax1.set_title("Accuracy")
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Accuracy")
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
 
     # Loss
-    plt.figure(figsize=(8, 5))
-    plt.plot(epochs, history["train_loss"], marker="o", label="Train Loss")
-    plt.plot(epochs, history["val_loss"], marker="x", label="Validation Loss")
-    best_epoch = int(np.argmin(history["val_loss"])) + 1
+    ax2.plot(epochs, history["train_loss"], marker="o", label="Train Loss")
+    ax2.plot(epochs, history["val_loss"], marker="x", label="Validation Loss")
+    best_epoch_loss = int(np.argmin(history["val_loss"])) + 1
     best_loss = float(np.min(history["val_loss"]))
-    plt.annotate(
-        f"Best Val Loss: {best_loss:.4f} @ epoch {best_epoch}",
-        xy=(best_epoch, best_loss),
-        xytext=(best_epoch, best_loss)
-    )
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.title("MNIST CNN Baseline - Loss")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
+    ax2.axvline(x=best_epoch_loss, color='gray', linestyle='--', alpha=0.5)
+    ax2.annotate(f"Best: {best_loss:.4f}", xy=(best_epoch_loss, best_loss),
+                 xytext=(best_epoch_loss - 1.5, best_loss + 0.1),
+                 arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
+    ax2.set_title("Loss")
+    ax2.set_xlabel("Epoch")
+    ax2.set_ylabel("Loss")
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+
     plt.tight_layout()
-    plt.savefig(save_dir / "mnist_cnn_loss.png", dpi=150)
-    plt.savefig(save_dir / "mnist_cnn_loss.svg")
+    plt.savefig(save_dir / "history.png", dpi=150)
+    plt.savefig(save_dir / "history.svg")
+    plt.show()
     plt.close()
 
 
@@ -291,7 +289,7 @@ def plot_history(history, save_dir: Path):
 # ============================================================
 def main():
     parser = argparse.ArgumentParser(description="CNN baseline tối giản cho MNIST")
-    parser.add_argument("--epochs", type=int, default=10, help="Số epoch huấn luyện")
+    parser.add_argument("--epochs", type=int, default=5, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")

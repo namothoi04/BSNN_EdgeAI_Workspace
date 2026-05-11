@@ -120,7 +120,9 @@ def plot_history(history, save_dir: Path):
     ax2.legend()
 
     plt.tight_layout()
-    plt.savefig(save_dir / "history_combined.png", dpi=150)
+    plt.savefig(save_dir / "history.png", dpi=150)
+    plt.savefig(save_dir / "history.svg")
+    plt.show()
     plt.close()
 
 class BinarizeTransform:

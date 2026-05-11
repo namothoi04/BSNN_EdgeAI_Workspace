@@ -1,3 +1,22 @@
+"""
+main.py
+
+BNN MNIST (PyTorch)
+- Kiến trúc gọn: BiConv -> BatNorm -> BiAct -> MaxPool -> Flatten -> Linear
+
+
+Cách chạy:
+    python main.py
+
+Tùy chọn:
+    xem tùy chọn: python main.py -help
+    ví dụ: python main.py --epochs 5 --batch_size 32 --lr 0.001
+"""
+
+
+
+
+
 import argparse
 import random
 from pathlib import Path
@@ -6,10 +25,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-
-def seed_everything(seed: int = 42) -> None: #đmm
+#setup seed
+def seed_everything(seed: int = 42) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -17,60 +37,80 @@ def seed_everything(seed: int = 42) -> None: #đmm
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
+#choose cpu or gpu
 def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#creat Binary weight
+class BinaryWeightConv2d(nn.Conv2d):
+    def forward(self, input):
+        w_bin = torch.where(self.weight >= 0,
+                            torch.tensor(1.0, device=self.weight.device),
+                            torch.tensor(-1.0, device=self.weight.device)
+                            )
+        w_bin = self.weight + (w_bin - self.weight).detach()
+        return F.conv2d(input, w_bin, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
-class CNN(nn.Module):
+#Binarize input to test acc
+BINARIZE_INPUT = False
+transform_list = [transforms.ToTensor()]
+
+if BINARIZE_INPUT:
+    print("Binarize input")
+    class BinarizeTransform:
+        def __call__(self, x):
+            return torch.where(x > 0.5, torch.tensor(1.0), torch.tensor(-1.0))
+    transform_list.append(BinarizeTransform())
+transform = transforms.Compose(transform_list)
+
+#Binary activation function
+class BinaryActivation(nn.Module):
+    def forward(self, x):
+        out = torch.where(x >= 0, 
+                        torch.tensor(1.0, device=x.device),
+                        torch.tensor(-1.0, device=x.device))
+        return x + (out - x).detach()
+#BNN model
+class BNN(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(BNN, self).__init__()
 
-        self.conv1 = nn.Conv2d(
-            in_channels=1,
-            out_channels=32,
-            kernel_size=3,
-        )
-        self.relu = nn.ReLU()
+        self.conv1 = BinaryWeightConv2d(1, 32, 3)
+        self.batnorm =  nn.BatchNorm2d(32)
+        self.bin_act = BinaryActivation()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(32*13*13, 10)
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)
-        x = self.relu(x)
+        x = self.batnorm(x)
+        x = self.bin_act(x)
         x = self.pool(x)
         x = self.flatten(x)
         x = self.fc(x)
         return x
 
-def build_dataloaders(batch_size, val_ratio, seed):
-    transform = transforms.ToTensor()
-    full_train = datasets.MNIST(
-        root="./data",
-        train=True,
-        download=True,
-        transform=transform,
-    )
+def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False):
+    transform_list = [transforms.ToTensor()]
+    
+    if binarize_input:
+        print("Đang áp dụng: Binarize Input Transform")
+        transform_list.append(BinarizeTransform())
+        
+    transform = transforms.Compose(transform_list)
 
-    test_dataset = datasets.MNIST(
-        root="./data",
-        train=False,
-        download=True,
-        transform=transform,
-    )
+    full_train = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
 
-    val_size = int(len(full_train)*val_ratio)
+    val_size = int(len(full_train) * val_ratio)
     train_size = len(full_train) - val_size
 
     generator = torch.Generator().manual_seed(seed)
-    train_dataset, val_dataset = random_split(
-        full_train,
-        [train_size, val_size],
-        generator=generator
-    )
+    train_dataset, val_dataset = random_split(full_train, [train_size, val_size], generator=generator)
+    
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset,batch_size, shuffle = False)
-    test_loader = DataLoader(test_dataset, batch_size= batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
     return train_loader, val_loader, test_loader
 def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -126,56 +166,72 @@ def plot_history(history, save_dir: Path):
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
-    # Accuracy
-    plt.figure(figsize=(8, 5))
-    plt.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
-    plt.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
-    best_epoch = int(np.argmax(history["val_acc"])) + 1
-    best_acc = float(np.max(history["val_acc"]))
-    plt.annotate(
-        f"Best Val: {best_acc*100:.2f}% @ epoch {best_epoch}",
-        xy=(best_epoch, best_acc),
-        xytext=(best_epoch, best_acc)
-    )
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.title("MNIST CNN Baseline - Accuracy")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(save_dir / "mnist_cnn_acc.png", dpi=150)
-    plt.savefig(save_dir / "mnist_cnn_acc.svg")
-    plt.close()
+    # Khởi tạo 1 Figure chứa 2 Subplots (1 hàng, 2 cột)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    # Loss
-    plt.figure(figsize=(8, 5))
-    plt.plot(epochs, history["train_loss"], marker="o", label="Train Loss")
-    plt.plot(epochs, history["val_loss"], marker="x", label="Validation Loss")
-    best_epoch = int(np.argmin(history["val_loss"])) + 1
-    best_loss = float(np.min(history["val_loss"]))
-    plt.annotate(
-        f"Best Val Loss: {best_loss:.4f} @ epoch {best_epoch}",
-        xy=(best_epoch, best_loss),
-        xytext=(best_epoch, best_loss)
+    # ==========================================
+    # ĐỒ THỊ 1: ACCURACY (BÊN TRÁI)
+    # ==========================================
+    ax1.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
+    ax1.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
+    
+    best_epoch_acc = int(np.argmax(history["val_acc"])) + 1
+    best_acc = float(np.max(history["val_acc"]))
+    
+    ax1.axvline(x=best_epoch_acc, color='gray', linestyle='--', alpha=0.5)
+    ax1.annotate(
+        f"Best: {best_acc*100:.2f}%",
+        xy=(best_epoch_acc, best_acc),
+        xytext=(best_epoch_acc - 1.5, best_acc - 0.05),
+        arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5)
     )
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.title("MNIST CNN Baseline - Loss")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(save_dir / "mnist_cnn_loss.png", dpi=150)
-    plt.savefig(save_dir / "mnist_cnn_loss.svg")
+    
+    ax1.set_title("MNIST BNN - Accuracy")
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Accuracy")
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+
+    # ==========================================
+    # ĐỒ THỊ 2: LOSS (BÊN PHẢI)
+    # ==========================================
+    ax2.plot(epochs, history["train_loss"], marker="o", label="Train Loss")
+    ax2.plot(epochs, history["val_loss"], marker="x", label="Validation Loss")
+    
+    best_epoch_loss = int(np.argmin(history["val_loss"])) + 1
+    best_loss = float(np.min(history["val_loss"]))
+    
+    ax2.axvline(x=best_epoch_loss, color='gray', linestyle='--', alpha=0.5)
+    ax2.annotate(
+        f"Best: {best_loss:.4f}",
+        xy=(best_epoch_loss, best_loss),
+        xytext=(best_epoch_loss - 1.5, best_loss + 0.1),
+        arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5)
+    )
+    
+    ax2.set_title("MNIST BNN - Loss")
+    ax2.set_xlabel("Epoch")
+    ax2.set_ylabel("Loss")
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+
+    # ==========================================
+    # LƯU ẢNH
+    # ==========================================
+    plt.tight_layout() # Tự động căn chỉnh khoảng cách để không bị lẹm chữ
+    plt.savefig(save_dir / "mnist_bnn.png", dpi=150)
+    plt.savefig(save_dir / "mnist_bnn.svg")
+    # plt.show()
     plt.close()
 
 def main():
-    parser = argparse.ArgumentParser(description="CNN baseline tối giản cho MNIST")
-    parser.add_argument("--epochs", type=int, default=10, help="Số epoch huấn luyện")
+    parser = argparse.ArgumentParser(description="BNN MNIST")
+    parser.add_argument("--epochs", type=int, default=5, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")
     parser.add_argument("--seed", type=int, default=42, help="Seed để tái lập")
-    parser.add_argument("--out_dir", type=str, default="runs_mnist_cnn_clean", help="Thư mục lưu kết quả")
+    parser.add_argument("--out_dir", type=str, default="runs_mnist_BNN", help="Thư mục lưu kết quả")
     args = parser.parse_args()
 
     seed_everything(args.seed)
@@ -184,7 +240,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
-    print("MNIST CNN BASELINE (CLEAN VERSION)")
+    print("MNIST BNN")
     print(f"Device      : {device}")
     print(f"Epochs      : {args.epochs}")
     print(f"Batch size  : {args.batch_size}")
@@ -197,10 +253,11 @@ def main():
         batch_size=args.batch_size,
         val_ratio=args.val_ratio,
         seed=args.seed,
+        binarize_input=False 
     )
 
     # Mô hình
-    model = CNN().to(device)
+    model = BNN().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 

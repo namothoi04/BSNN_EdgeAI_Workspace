@@ -1,12 +1,10 @@
-# %%
-#%load_ext autoreload
-#%autoreload 2
+
 
 import sys
 import os
 import cv2
 
-# Thêm thư mục cha (thư mục gốc của project) vào đường dẫn hệ thống
+
 sys.path.append(os.path.abspath('..'))
 
 import torch
@@ -31,19 +29,17 @@ seed_everything(SEED)
 device = get_device()
 print(f"Sử dụng thiết bị: {device}")
 
-# %%
-# Chú ý: Ở đây bạn có thể bật/tắt việc nhị phân hóa ảnh đầu vào rất dễ dàng
+
 train_loader, val_loader, test_loader = build_dataloaders(
     BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False 
 )
-
+#
 model = BNN().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
 print(f"Tổng tham số BNN: {count_parameters(model):,}")
 
-# %%
 history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 best_val_acc = -1.0
 best_state = None
@@ -71,7 +67,7 @@ test_loss, test_acc = evaluate(model, test_loader, criterion, device)
 print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
-# %%
+
 plot_history(history, OUT_DIR)
 
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
@@ -79,7 +75,7 @@ np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))
 np.save(OUT_DIR / "val_loss.npy", np.array(history["val_loss"]))
 np.save(OUT_DIR / "val_acc.npy", np.array(history["val_acc"]))
 
-# %%
+
 
 
 

@@ -1,3 +1,22 @@
+"""
+main.py
+
+BNN MNIST (PyTorch)
+- Kiến trúc gọn: BiConv -> BatNorm -> BiAct -> MaxPool -> Flatten -> Linear
+
+
+Cách chạy:
+    python main.py
+
+Tùy chọn:
+    xem tùy chọn: python main.py -help
+    ví dụ: python main.py --epochs 5 --batch_size 32 --lr 0.001
+"""
+
+
+
+
+
 import argparse
 import random
 from pathlib import Path
@@ -70,34 +89,28 @@ class BNN(nn.Module):
         x = self.fc(x)
         return x
 
-def build_dataloaders(batch_size, val_ratio, seed):
-    transform = transforms.ToTensor()
-    full_train = datasets.MNIST(
-        root="./data",
-        train=True,
-        download=True,
-        transform=transform,
-    )
+def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False):
+    transform_list = [transforms.ToTensor()]
+    
+    if binarize_input:
+        print("Đang áp dụng: Binarize Input Transform")
+        transform_list.append(BinarizeTransform())
+        
+    transform = transforms.Compose(transform_list)
 
-    test_dataset = datasets.MNIST(
-        root="./data",
-        train=False,
-        download=True,
-        transform=transform,
-    )
+    full_train = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
 
-    val_size = int(len(full_train)*val_ratio)
+    val_size = int(len(full_train) * val_ratio)
     train_size = len(full_train) - val_size
 
     generator = torch.Generator().manual_seed(seed)
-    train_dataset, val_dataset = random_split(
-        full_train,
-        [train_size, val_size],
-        generator=generator
-    )
+    train_dataset, val_dataset = random_split(full_train, [train_size, val_size], generator=generator)
+    
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset,batch_size, shuffle = False)
-    test_loader = DataLoader(test_dataset, batch_size= batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
     return train_loader, val_loader, test_loader
 def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -206,13 +219,14 @@ def plot_history(history, save_dir: Path):
     # LƯU ẢNH
     # ==========================================
     plt.tight_layout() # Tự động căn chỉnh khoảng cách để không bị lẹm chữ
-    plt.savefig(save_dir / "mnist_bnn_history_combined.png", dpi=150)
-    plt.savefig(save_dir / "mnist_bnn_history_combined.svg")
+    plt.savefig(save_dir / "mnist_bnn.png", dpi=150)
+    plt.savefig(save_dir / "mnist_bnn.svg")
+    # plt.show()
     plt.close()
 
 def main():
     parser = argparse.ArgumentParser(description="BNN MNIST")
-    parser.add_argument("--epochs", type=int, default=10, help="Số epoch huấn luyện")
+    parser.add_argument("--epochs", type=int, default=5, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")
@@ -239,6 +253,7 @@ def main():
         batch_size=args.batch_size,
         val_ratio=args.val_ratio,
         seed=args.seed,
+        binarize_input=False 
     )
 
     # Mô hình

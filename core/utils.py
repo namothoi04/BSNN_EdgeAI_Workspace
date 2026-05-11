@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-
+import glob
+import os
+import cv2
 def seed_everything(seed: int = 42) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -128,3 +130,42 @@ def plot_history(history, save_dir: Path):
 class BinarizeTransform:
     def __call__(self, x):
         return torch.where(x > 0.5, torch.tensor(1.0), torch.tensor(-1.0))
+
+def predict_external_images(model, folder_path, device):
+    """
+    Hàm load các ảnh từ folder, tiền xử lý và dự đoán nhãn.
+    """
+    model.eval()
+    image_paths = glob.glob(os.path.join(folder_path, "*.*")) # Lấy tất cả file ảnh
+    
+    if not image_paths:
+        print(f"Không tìm thấy ảnh nào trong thư mục: {folder_path}")
+        return
+
+    print(f"\n--- Đang dự đoán ảnh từ thư mục: {folder_path} ---")
+    
+    with torch.no_grad():
+        for img_path in image_paths:
+            # 1. Đọc ảnh và chuyển về ảnh xám (Grayscale)
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                continue
+            
+            # 2. Resize về 28x28 (kích thước của MNIST)
+            img_resized = cv2.resize(img, (28, 28))
+            
+            # 3. Tiền xử lý: Chuyển sang tensor, thêm dimension (Batch, Channel, H, W) và chuẩn hóa
+            # MNIST thường là nền đen chữ trắng, nếu ảnh của bạn nền trắng chữ đen thì cần đảo ngược màu:
+            # img_resized = 255 - img_resized 
+            
+            img_tensor = torch.from_numpy(img_resized).float().to(device)
+            img_tensor = img_tensor / 255.0  # Chuẩn hóa về [0, 1]
+            img_tensor = img_tensor.unsqueeze(0).unsqueeze(0) # Shape: [1, 1, 28, 28]
+
+            # 4. Dự đoán
+            output = model(img_tensor)
+            pred = output.argmax(dim=1, keepdim=True).item()
+            
+            print(f"Ảnh: {os.path.basename(img_path)} --> Dự đoán: {pred}")
+
+

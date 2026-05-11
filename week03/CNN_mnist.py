@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
-def seed_everything(seed: int = 42) -> None:
+def seed_everything(seed: int = 42) -> None: #đmm
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

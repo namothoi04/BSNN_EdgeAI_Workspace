@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Import từ thư mục core
 from core.utils import seed_everything, get_device, build_dataloaders, train_one_epoch, evaluate, count_parameters, plot_history
-from core.models import BNN
+from core.models import CNN
 
 # Configs
 EPOCHS = 7
@@ -34,7 +34,7 @@ train_loader, val_loader, test_loader = build_dataloaders(
     BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False 
 )
 #
-model = BNN().to(device)
+model = CNN().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 

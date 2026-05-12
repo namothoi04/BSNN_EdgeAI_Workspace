@@ -85,7 +85,9 @@ def evaluate(model, loader, criterion, device):
     return total_loss / total, correct / total
 
 #visualization
-def plot_history(history, save_dir: Path):
+def plot_history(history, save_dir: Path, model_name = 'CNN'):
+    acc_title = model_name + ' - Accuracy'
+    loss_title = model_name + ' - Loss'
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
@@ -100,7 +102,7 @@ def plot_history(history, save_dir: Path):
     ax1.annotate(f"Best: {best_acc*100:.2f}%", xy=(best_epoch_acc, best_acc),
                  xytext=(best_epoch_acc - 1.5, best_acc - 0.05),
                  arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
-    ax1.set_title("Accuracy")
+    ax1.set_title(acc_title)
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Accuracy")
     ax1.grid(True, alpha=0.3)
@@ -115,7 +117,7 @@ def plot_history(history, save_dir: Path):
     ax2.annotate(f"Best: {best_loss:.4f}", xy=(best_epoch_loss, best_loss),
                  xytext=(best_epoch_loss - 1.5, best_loss + 0.1),
                  arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
-    ax2.set_title("Loss")
+    ax2.set_title(acc_title)
     ax2.set_xlabel("Epoch")
     ax2.set_ylabel("Loss")
     ax2.grid(True, alpha=0.3)
@@ -124,7 +126,6 @@ def plot_history(history, save_dir: Path):
     plt.tight_layout()
     plt.savefig(save_dir / "history.png", dpi=150)
     plt.savefig(save_dir / "history.svg")
-    plt.show()
     plt.close()
 
 class BinarizeTransform:

@@ -26,7 +26,7 @@ class BNN(nn.Module):
         super(BNN, self).__init__()
         
         self.conv1 = BinaryWeightConv2d(1, 32, 3)
-        self.batnorm =  nn.BatchNorm2d(32)
+        # self.batnorm =  nn.BatchNorm2d(32)
 
         if activation_type == "binary":
             self.act = BinaryActivation()
@@ -40,7 +40,7 @@ class BNN(nn.Module):
         self.fc = nn.Linear(32*13*13, 10)
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)
-        x = self.batnorm(x)
+        # x = self.batnorm(x)
         x = self.act(x)
         x = self.pool(x)
         x = self.flatten(x)

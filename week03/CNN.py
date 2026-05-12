@@ -22,7 +22,7 @@ BATCH_SIZE = 32
 LR = 1e-3
 VAL_RATIO = 0.1
 SEED = 42
-OUT_DIR = Path("runs_mnist_bnn")
+OUT_DIR = Path("runs_mnist_cnn")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 seed_everything(SEED)
@@ -38,7 +38,7 @@ model = CNN().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-print(f"Tổng tham số BNN: {count_parameters(model):,}")
+print(f"Tổng tham số CNN: {count_parameters(model):,}")
 
 history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 best_val_acc = -1.0

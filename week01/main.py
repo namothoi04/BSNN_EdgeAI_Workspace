@@ -289,7 +289,7 @@ def plot_history(history, save_dir: Path):
 # ============================================================
 def main():
     parser = argparse.ArgumentParser(description="CNN baseline tối giản cho MNIST")
-    parser.add_argument("--epochs", type=int, default=5, help="Số epoch huấn luyện")
+    parser.add_argument("--epochs", type=int, default=7, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")

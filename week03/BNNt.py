@@ -31,7 +31,7 @@ print(f"Sử dụng thiết bị: {device}")
 
 
 train_loader, val_loader, test_loader = build_dataloaders(
-    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False 
+    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=True 
 )
 #
 model = BNN(activation_type="binary").to(device)

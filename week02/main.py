@@ -51,7 +51,7 @@ class BinaryWeightConv2d(nn.Conv2d):
         return F.conv2d(input, w_bin, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
 #Binarize input to test acc
-BINARIZE_INPUT = False
+BINARIZE_INPUT = True
 transform_list = [transforms.ToTensor()]
 
 if BINARIZE_INPUT:
@@ -75,14 +75,14 @@ class BNN(nn.Module):
         super(BNN, self).__init__()
 
         self.conv1 = BinaryWeightConv2d(1, 32, 3)
-        self.batnorm =  nn.BatchNorm2d(32)
+        # self.batnorm =  nn.BatchNorm2d(32)
         self.bin_act = BinaryActivation()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(32*13*13, 10)
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)
-        x = self.batnorm(x)
+        # x = self.batnorm(x)
         x = self.bin_act(x)
         x = self.pool(x)
         x = self.flatten(x)
@@ -231,7 +231,7 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")
     parser.add_argument("--seed", type=int, default=42, help="Seed để tái lập")
-    parser.add_argument("--out_dir", type=str, default="runs_mnist_BNN", help="Thư mục lưu kết quả")
+    parser.add_argument("--out_dir", type=str, default="./runs_mnist_BNN", help="Thư mục lưu kết quả")
     args = parser.parse_args()
 
     seed_everything(args.seed)
@@ -253,7 +253,7 @@ def main():
         batch_size=args.batch_size,
         val_ratio=args.val_ratio,
         seed=args.seed,
-        binarize_input=False 
+        binarize_input=True 
     )
 
     # Mô hình

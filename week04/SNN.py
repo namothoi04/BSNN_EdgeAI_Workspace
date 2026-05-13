@@ -186,23 +186,48 @@ def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
-def plot_history(history, save_dir: Path):
+def plot_history(history, save_dir: Path, model_name = 'CNN', file_name = 'history'):
+    acc_title = model_name + ' - Accuracy'
+    loss_title = model_name + ' - Loss'
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
-    # Lược bỏ code vẽ đồ thị (giữ nguyên logic gốc của bạn để tiết kiệm không gian hiển thị)
-    plt.figure(figsize=(8, 5))
-    plt.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
-    plt.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.title("MNIST SNN Baseline - Accuracy")
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(save_dir / "mnist_snn_acc.png")
-    plt.close()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
+    # Accuracy
+    ax1.plot(epochs, history["train_acc"], marker="o", label="Train Accuracy")
+    ax1.plot(epochs, history["val_acc"], marker="x", label="Validation Accuracy")
+    best_epoch_acc = int(np.argmax(history["val_acc"])) + 1
+    best_acc = float(np.max(history["val_acc"]))
+    ax1.axvline(x=best_epoch_acc, color='gray', linestyle='--', alpha=0.5)
+    ax1.annotate(f"Best: {best_acc*100:.2f}%", xy=(best_epoch_acc, best_acc),
+                 xytext=(best_epoch_acc - 1.5, best_acc - 0.05),
+                 arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
+    ax1.set_title(acc_title)
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Accuracy")
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+
+    # Loss
+    ax2.plot(epochs, history["train_loss"], marker="o", label="Train Loss")
+    ax2.plot(epochs, history["val_loss"], marker="x", label="Validation Loss")
+    best_epoch_loss = int(np.argmin(history["val_loss"])) + 1
+    best_loss = float(np.min(history["val_loss"]))
+    ax2.axvline(x=best_epoch_loss, color='gray', linestyle='--', alpha=0.5)
+    ax2.annotate(f"Best: {best_loss:.4f}", xy=(best_epoch_loss, best_loss),
+                 xytext=(best_epoch_loss - 1.5, best_loss + 0.1),
+                 arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
+    ax2.set_title(loss_title)
+    ax2.set_xlabel("Epoch")
+    ax2.set_ylabel("Loss")
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.savefig(save_dir / (file_name+'.png'), dpi=150)
+    plt.savefig(save_dir / (file_name+'.svg'))
+    plt.close()
 
 # ============================================================
 # 9. Chương trình chính
@@ -270,7 +295,7 @@ def main():
     print(f"Test accuracy           : {test_acc*100:.2f}%")
     print("-" * 60)
 
-    plot_history(history, out_dir)
+    plot_history(history, out_dir, "SNN", "history")
 
 if __name__ == "__main__":
     main()

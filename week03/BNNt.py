@@ -34,7 +34,7 @@ train_loader, val_loader, test_loader = build_dataloaders(
     BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False 
 )
 #
-model = BNN(activation_type="relu").to(device)
+model = BNN(activation_type="binary").to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
@@ -68,7 +68,7 @@ print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
 
-plot_history(history, OUT_DIR, "BNN")
+plot_history(history, OUT_DIR, "BNN weight + activation + input", file_name='input_history')
 
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
 np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))

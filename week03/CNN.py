@@ -31,7 +31,7 @@ print(f"Sử dụng thiết bị: {device}")
 
 
 train_loader, val_loader, test_loader = build_dataloaders(
-    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False 
+    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False, dataset="fmnist"
 )
 #
 model = CNN().to(device)
@@ -68,7 +68,7 @@ print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
 
-plot_history(history, OUT_DIR, model_name='CNN')
+plot_history(history, OUT_DIR, project_name='CNN_fmnist', file_name="fmnist_history")
 
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
 np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))

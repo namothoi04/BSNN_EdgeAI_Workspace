@@ -19,9 +19,9 @@ from core.models import BNN
 # Configs
 EPOCHS = 7
 BATCH_SIZE = 32
-LR = 1e-3
-VAL_RATIO = 0.1
+LR = 0.001 #learning rate
 SEED = 42
+VAL_RATIO = 0.1
 OUT_DIR = Path("runs_mnist_bnn")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -31,10 +31,10 @@ print(f"Sử dụng thiết bị: {device}")
 
 
 train_loader, val_loader, test_loader = build_dataloaders(
-    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=True 
+    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=True, dataset="fmnist" #nhị phân hóa dữ liệu, chọn dataset
 )
 #
-model = BNN(activation_type="binary").to(device)
+model = BNN(activation_type="binary").to(device) #chọn model và activation
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
@@ -67,8 +67,8 @@ test_loss, test_acc = evaluate(model, test_loader, criterion, device)
 print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
-
-plot_history(history, OUT_DIR, "BNN weight + activation + input", file_name='input_history')
+#vẽ biểu đồ: chọn tên biểu đồ, tên file
+plot_history(history, OUT_DIR, "fmnist BNN weight act input", file_name='fmnist_binarize_weight_act_input_history')
 
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
 np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))

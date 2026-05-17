@@ -23,7 +23,7 @@ def get_device() -> torch.device:
 def count_parameters(model: torch.nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
-def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False):
+def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False, dataset = "mnist"):
     transform_list = [transforms.ToTensor()]
     
     if binarize_input:
@@ -31,9 +31,13 @@ def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False):
         transform_list.append(BinarizeTransform())
         
     transform = transforms.Compose(transform_list)
+    if (dataset == "mnist"):
+        full_train = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+        test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    elif (dataset == "fmnist"):
+        full_train = datasets.FashionMNIST(root="./data", train=True, download=True, transform=transform)
+        test_dataset = datasets.FashionMNIST(root="./data", train=False, download=True, transform=transform)
 
-    full_train = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
 
     val_size = int(len(full_train) * val_ratio)
     train_size = len(full_train) - val_size
@@ -85,9 +89,9 @@ def evaluate(model, loader, criterion, device):
     return total_loss / total, correct / total
 
 #visualization
-def plot_history(history, save_dir: Path, model_name = 'CNN', file_name = 'history'):
-    acc_title = model_name + ' - Accuracy'
-    loss_title = model_name + ' - Loss'
+def plot_history(history, save_dir: Path, project_name = 'CNN', file_name = 'history'):
+    acc_title = project_name + ' - Accuracy'
+    loss_title = project_name + ' - Loss'
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
@@ -125,13 +129,14 @@ def plot_history(history, save_dir: Path, model_name = 'CNN', file_name = 'histo
 
     plt.tight_layout()
     plt.savefig(save_dir / (file_name+'.png'), dpi=150)
-    plt.savefig(save_dir / (file_name+'.svg'))
+    # plt.savefig(save_dir / (file_name+'.svg'))
     plt.close()
 
 class BinarizeTransform:
     def __call__(self, x):
         return torch.where(x > 0.5, torch.tensor(1.0), torch.tensor(-1.0))
 
+#dự đoán từ tập ảnh của mình
 def predict_external_images(model, folder_path, device):
     """
     Hàm load các ảnh từ folder, tiền xử lý và dự đoán nhãn.

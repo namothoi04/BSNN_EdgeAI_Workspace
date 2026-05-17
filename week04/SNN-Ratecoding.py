@@ -186,7 +186,7 @@ def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
-def plot_history(history, save_dir: Path, model_name = 'CNN', file_name = 'history'):
+def plot_history(history, save_dir: Path, model_name = 'SNN - Rate Coding', file_name = 'history'):
     acc_title = model_name + ' - Accuracy'
     loss_title = model_name + ' - Loss'
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -239,7 +239,7 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Tỉ lệ validation")
     parser.add_argument("--seed", type=int, default=42, help="Seed để tái lập")
-    parser.add_argument("--out_dir", type=str, default="runs_mnist_snn_clean", help="Thư mục lưu kết quả")
+    parser.add_argument("--out_dir", type=str, default="runs_mnist_snn_ratecoding", help="Thư mục lưu kết quả")
     
     # Tham số đặc thù cho SNN
     parser.add_argument("--num_steps", type=int, default=25, help="Số bước thời gian (Time steps) cho quá trình mã hóa")
@@ -248,7 +248,7 @@ def main():
 
     seed_everything(args.seed)
     device = get_device()
-    out_dir = Path(args.out_dir)
+    out_dir = Path(__file__).parent / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
@@ -295,7 +295,7 @@ def main():
     print(f"Test accuracy           : {test_acc*100:.2f}%")
     print("-" * 60)
 
-    plot_history(history, out_dir, "SNN", "history")
+    plot_history(history, out_dir, "SNN - rate coding", "history_ratecoding")
 
 if __name__ == "__main__":
     main()

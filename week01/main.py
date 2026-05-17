@@ -241,7 +241,7 @@ def count_parameters(model: nn.Module) -> int:
 # ============================================================
 # 8. Vẽ đồ thị huấn luyện
 # ============================================================
-def plot_history(history, save_dir: Path):
+def plot_history(history, save_dir: Path,model_name="CNN - Baseline"):
     save_dir.mkdir(parents=True, exist_ok=True)
     epochs = range(1, len(history["train_acc"]) + 1)
 
@@ -256,7 +256,7 @@ def plot_history(history, save_dir: Path):
     ax1.annotate(f"Best: {best_acc*100:.2f}%", xy=(best_epoch_acc, best_acc),
                  xytext=(best_epoch_acc - 1.5, best_acc - 0.05),
                  arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
-    ax1.set_title("Accuracy")
+    ax1.set_title(f"{model_name} - Accuracy")
     ax1.set_xlabel("Epoch")
     ax1.set_ylabel("Accuracy")
     ax1.grid(True, alpha=0.3)
@@ -271,7 +271,7 @@ def plot_history(history, save_dir: Path):
     ax2.annotate(f"Best: {best_loss:.4f}", xy=(best_epoch_loss, best_loss),
                  xytext=(best_epoch_loss - 1.5, best_loss + 0.1),
                  arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5))
-    ax2.set_title("Loss")
+    ax2.set_title(f"{model_name} - Loss")
     ax2.set_xlabel("Epoch")
     ax2.set_ylabel("Loss")
     ax2.grid(True, alpha=0.3)
@@ -280,7 +280,6 @@ def plot_history(history, save_dir: Path):
     plt.tight_layout()
     plt.savefig(save_dir / "history.png", dpi=150)
     plt.savefig(save_dir / "history.svg")
-    plt.show()
     plt.close()
 
 
@@ -300,7 +299,7 @@ def main():
     # Khởi tạo
     seed_everything(args.seed)
     device = get_device()
-    out_dir = Path(args.out_dir)
+    out_dir = Path(__file__).parent / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
@@ -380,7 +379,7 @@ def main():
     print("-" * 60)
 
     # Vẽ đồ thị
-    plot_history(history, out_dir)
+    plot_history(history, out_dir, model_name="CNN - baseline")
 
     # Lưu lịch sử để tiện xem lại / chuyển sang BNN/SNN sau này
     np.save(out_dir / "train_loss.npy", np.array(history["train_loss"]))

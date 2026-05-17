@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
-def seed_everything(seed: int = 42) -> None: #đmm
+def seed_everything(seed: int = 42) -> None: 
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -170,6 +170,7 @@ def plot_history(history, save_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="CNN baseline tối giản cho MNIST")
+    parser.add_argument("--dataset", type=str, default="mnist", help="chọn dataset")
     parser.add_argument("--epochs", type=int, default=10, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")

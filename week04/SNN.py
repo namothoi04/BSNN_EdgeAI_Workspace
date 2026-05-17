@@ -1,9 +1,6 @@
-
-
 import sys
 import os
-import cv2
-
+import json
 
 sys.path.append(os.path.abspath('..'))
 
@@ -14,32 +11,55 @@ from pathlib import Path
 
 # Import từ thư mục core
 from core.utils import seed_everything, get_device, build_dataloaders, train_one_epoch, evaluate, count_parameters, plot_history
-from core.models import BNN
+from core.models import SimpleSNN_Temporal, SNNModelWrapper
 
-# Configs
+# ==========================================
+# 1. Cấu hình (Configs)
+# ==========================================
 EPOCHS = 7
 BATCH_SIZE = 32
 LR = 1e-3
 VAL_RATIO = 0.1
 SEED = 42
-OUT_DIR = Path("runs_mnist_bnn")
+MODEL_NAME = "SNN"
+DATASET = "mnist" 
+num_steps = 25
+beta = 0.9
+tau_latency = 5.0
+
+OUT_DIR = Path("runs_" + DATASET + "_" + MODEL_NAME)
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# ==========================================
+# 2. Khởi tạo & Chuẩn bị dữ liệu
+# ==========================================
 seed_everything(SEED)
 device = get_device()
 print(f"Sử dụng thiết bị: {device}")
 
-
 train_loader, val_loader, test_loader = build_dataloaders(
-    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=True 
+    BATCH_SIZE, 
+    VAL_RATIO, 
+    SEED, 
+    binarize_input=False, # nhị phân hóa dữ liệu
+    dataset=DATASET       # chọn dataset
 )
-#
-model = BNN(activation_type="binary").to(device)
+
+# ==========================================
+# 3. Khởi tạo Mô hình & Optimizer
+# ==========================================
+# Sử dụng trực tiếp các biến config thay vì hardcode
+snn_core = SimpleSNN_Temporal(beta=beta)
+model = SNNModelWrapper(snn_model=snn_core, num_steps=num_steps, tau_latency=tau_latency).to(device)
+
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-print(f"Tổng tham số BNN: {count_parameters(model):,}")
+print(f"Tổng tham số {MODEL_NAME}: {count_parameters(model):,}")
 
+# ==========================================
+# 4. Quá trình Huấn luyện (Training Loop)
+# ==========================================
 history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 best_val_acc = -1.0
 best_state = None
@@ -59,6 +79,9 @@ for epoch in range(1, EPOCHS + 1):
         best_val_acc = val_acc
         best_state = {k: v.cpu() for k, v in model.state_dict().items()}
 
+# ==========================================
+# 5. Đánh giá & Lưu kết quả
+# ==========================================
 if best_state is not None:
     torch.save(best_state, OUT_DIR / "best_model.pt")
     model.load_state_dict(best_state)
@@ -67,15 +90,25 @@ test_loss, test_acc = evaluate(model, test_loader, criterion, device)
 print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
+# Vẽ biểu đồ: chọn tên biểu đồ, tên file
+plot_history(history, OUT_DIR, DATASET + "_" + MODEL_NAME, file_name=DATASET + "_" + MODEL_NAME + "_history")
 
-plot_history(history, OUT_DIR, "BNN weight + activation + input", file_name='input_history')
-
+# Lưu numpy array
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
 np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))
 np.save(OUT_DIR / "val_loss.npy", np.array(history["val_loss"]))
 np.save(OUT_DIR / "val_acc.npy", np.array(history["val_acc"]))
 
-
-
-
-
+# Lưu lại các thông số cấu hình để dễ dàng đối chiếu nghiệm
+config_dict = {
+    "MODEL_NAME": MODEL_NAME,
+    "DATASET": DATASET,
+    "EPOCHS": EPOCHS,
+    "BATCH_SIZE": BATCH_SIZE,
+    "LR": LR,
+    "num_steps": num_steps,
+    "beta": beta,
+    "tau_latency": tau_latency
+}
+with open(OUT_DIR / "config.json", "w") as f:
+    json.dump(config_dict, f, indent=4)

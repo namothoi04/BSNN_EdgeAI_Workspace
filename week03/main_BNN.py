@@ -35,13 +35,9 @@ class BinaryWeightConv2d(nn.Conv2d):
 BINARIZE_INPUT = False
 transform_list = [transforms.ToTensor()]
 
-if BINARIZE_INPUT:
-    print("Binarize input")
-    class BinarizeTransform:
+class BinarizeTransform:
         def __call__(self, x):
             return torch.where(x > 0.5, torch.tensor(1.0), torch.tensor(-1.0))
-    transform_list.append(BinarizeTransform())
-transform = transforms.Compose(transform_list)
 
 #Binary activation function
 class BinaryActivation(nn.Module):
@@ -52,52 +48,56 @@ class BinaryActivation(nn.Module):
         return x + (out - x).detach()
 #BNN model
 class BNN(nn.Module):
-    def __init__(self):
+    def __init__(self, activation_type="binary"):
         super(BNN, self).__init__()
-
+        
         self.conv1 = BinaryWeightConv2d(1, 32, 3)
-        self.batnorm =  nn.BatchNorm2d(32)
-        self.bin_act = BinaryActivation()
+        self.bn =  nn.BatchNorm2d(32)
+
+        if activation_type == "binary":
+            self.act = BinaryActivation()
+        elif activation_type == "relu":
+            self.act = nn.ReLU()
+        else:
+            raise ValueError("Chỉ hỗ trợ 'binary' hoặc 'relu'")
+        
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(32*13*13, 10)
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)
-        x = self.batnorm(x)
-        x = self.bin_act(x)
+        x = self.bn(x)
+        x = self.act(x)
         x = self.pool(x)
         x = self.flatten(x)
         x = self.fc(x)
         return x
+def build_dataloaders(batch_size, val_ratio, seed, binarize_input=False, dataset = "mnist"):
+    transform_list = [transforms.ToTensor()]
+    
+    if binarize_input:
+        print("Đang áp dụng: Binarize Input Transform")
+        transform_list.append(BinarizeTransform())
+        
+    transform = transforms.Compose(transform_list)
+    if (dataset == "mnist"):
+        full_train = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
+        test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    elif (dataset == "fmnist"):
+        full_train = datasets.FashionMNIST(root="./data", train=True, download=True, transform=transform)
+        test_dataset = datasets.FashionMNIST(root="./data", train=False, download=True, transform=transform)
 
-def build_dataloaders(batch_size, val_ratio, seed):
-    transform = transforms.ToTensor()
-    full_train = datasets.MNIST(
-        root="./data",
-        train=True,
-        download=True,
-        transform=transform,
-    )
 
-    test_dataset = datasets.MNIST(
-        root="./data",
-        train=False,
-        download=True,
-        transform=transform,
-    )
-
-    val_size = int(len(full_train)*val_ratio)
+    val_size = int(len(full_train) * val_ratio)
     train_size = len(full_train) - val_size
 
     generator = torch.Generator().manual_seed(seed)
-    train_dataset, val_dataset = random_split(
-        full_train,
-        [train_size, val_size],
-        generator=generator
-    )
+    train_dataset, val_dataset = random_split(full_train, [train_size, val_size], generator=generator)
+    
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset,batch_size, shuffle = False)
-    test_loader = DataLoader(test_dataset, batch_size= batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
     return train_loader, val_loader, test_loader
 def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -212,6 +212,7 @@ def plot_history(history, save_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="BNN MNIST")
+    parser.add_argument("--dataset", type=str, default="mnist", help="chọn dataset")
     parser.add_argument("--epochs", type=int, default=10, help="Số epoch huấn luyện")
     parser.add_argument("--batch_size", type=int, default=32, help="Kích thước batch")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
@@ -239,10 +240,12 @@ def main():
         batch_size=args.batch_size,
         val_ratio=args.val_ratio,
         seed=args.seed,
+        binarize_input=False,
+        dataset=args.dataset
     )
 
     # Mô hình
-    model = BNN().to(device)
+    model = BNN(activation_type="relu").to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
@@ -302,7 +305,7 @@ def main():
     # Vẽ đồ thị
     plot_history(history, out_dir)
 
-    # Lưu lịch sử để tiện xem lại / chuyển sang BNN/SNN sau này
+    # Lưu lịch sử để tiện xem lại
     np.save(out_dir / "train_loss.npy", np.array(history["train_loss"]))
     np.save(out_dir / "train_acc.npy", np.array(history["train_acc"]))
     np.save(out_dir / "val_loss.npy", np.array(history["val_loss"]))

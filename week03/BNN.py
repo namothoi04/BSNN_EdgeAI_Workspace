@@ -14,15 +14,15 @@ from pathlib import Path
 
 # Import từ thư mục core
 from core.utils import seed_everything, get_device, build_dataloaders, train_one_epoch, evaluate, count_parameters, plot_history
-from core.models import CNN
+from core.models import BNN
 
 # Configs
 EPOCHS = 7
 BATCH_SIZE = 32
-LR = 1e-3
-VAL_RATIO = 0.1
+LR = 0.001 #learning rate
 SEED = 42
-OUT_DIR = Path("runs_mnist_cnn")
+VAL_RATIO = 0.1
+OUT_DIR = Path("runs_mnist_bnn")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 seed_everything(SEED)
@@ -31,14 +31,14 @@ print(f"Sử dụng thiết bị: {device}")
 
 
 train_loader, val_loader, test_loader = build_dataloaders(
-    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=False, dataset="fmnist"
+    BATCH_SIZE, VAL_RATIO, SEED, binarize_input=True, dataset="fmnist" #nhị phân hóa dữ liệu, chọn dataset
 )
 #
-model = CNN().to(device)
+model = BNN(activation_type="binary").to(device) #chọn model và activation
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-print(f"Tổng tham số CNN: {count_parameters(model):,}")
+print(f"Tổng tham số BNN: {count_parameters(model):,}")
 
 history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 best_val_acc = -1.0
@@ -67,8 +67,8 @@ test_loss, test_acc = evaluate(model, test_loader, criterion, device)
 print("-" * 40)
 print(f"Test accuracy: {test_acc*100:.2f}%")
 
-
-plot_history(history, OUT_DIR, project_name='CNN_fmnist', file_name="fmnist_history")
+#vẽ biểu đồ: chọn tên biểu đồ, tên file
+plot_history(history, OUT_DIR, "fmnist BNN weight act input", file_name='fmnist_binarize_weight_act_input_history')
 
 np.save(OUT_DIR / "train_loss.npy", np.array(history["train_loss"]))
 np.save(OUT_DIR / "train_acc.npy", np.array(history["train_acc"]))

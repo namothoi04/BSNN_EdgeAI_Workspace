@@ -9,6 +9,9 @@ from torchvision import datasets, transforms
 import glob
 import os
 import cv2
+import snntorch as snn
+from snntorch import spikegen
+from snntorch import surrogate
 def seed_everything(seed: int = 42) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -71,21 +74,24 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
     return total_loss / total, correct / total
 
 @torch.no_grad()
+
 def evaluate(model, loader, criterion, device):
     model.eval()
     total_loss, correct, total = 0.0, 0, 0
     
-    for images, labels in loader:
-        images, labels = images.to(device), labels.to(device)
-       
-        logits = model(images)
-        loss = criterion(logits, labels)
+    # Bọc vòng lặp trong no_grad()
+    with torch.no_grad():
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+           
+            logits = model(images)
+            loss = criterion(logits, labels)
 
-        total_loss += loss.item() * images.size(0)
-        preds = logits.argmax(dim=1)
-        correct += (preds == labels).sum().item()
-        total += labels.size(0)
-        
+            total_loss += loss.item() * images.size(0)
+            preds = logits.argmax(dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            
     return total_loss / total, correct / total
 
 #visualization

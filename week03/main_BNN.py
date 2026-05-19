@@ -32,8 +32,6 @@ class BinaryWeightConv2d(nn.Conv2d):
         return F.conv2d(input, w_bin, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
 #Binarize input to test acc
-BINARIZE_INPUT = False
-transform_list = [transforms.ToTensor()]
 
 class BinarizeTransform:
         def __call__(self, x):
@@ -48,7 +46,7 @@ class BinaryActivation(nn.Module):
         return x + (out - x).detach()
 #BNN model
 class BNN(nn.Module):
-    def __init__(self, activation_type="binary"):
+    def __init__(self, activation_type:str= "binary"):
         super(BNN, self).__init__()
         
         self.conv1 = BinaryWeightConv2d(1, 32, 3)

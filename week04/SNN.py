@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Import từ thư mục core
 from core.utils import seed_everything, get_device, build_dataloaders, train_one_epoch, evaluate, count_parameters, plot_history
-from core.models import SimpleSNN_Temporal, SNNModelWrapper
+from core.models import SNNGenericWrapper, BaseSNN
 
 # ==========================================
 # 1. Cấu hình (Configs)
@@ -21,8 +21,11 @@ BATCH_SIZE = 32
 LR = 1e-3
 VAL_RATIO = 0.1
 SEED = 42
-MODEL_NAME = "SNN"
 DATASET = "mnist" 
+
+# Cấu hình đặc thù cho SNN
+CODING_TYPE = "temporal"  # Bạn có thể đổi thành "rate" hoặc "temporal" tùy nhu cầu
+MODEL_NAME = f"SNN_{CODING_TYPE.capitalize()}" # Tự động tạo tên SNN_Rate hoặc SNN_Temporal
 num_steps = 25
 beta = 0.9
 tau_latency = 5.0
@@ -48,9 +51,14 @@ train_loader, val_loader, test_loader = build_dataloaders(
 # ==========================================
 # 3. Khởi tạo Mô hình & Optimizer
 # ==========================================
-# Sử dụng trực tiếp các biến config thay vì hardcode
-snn_core = SimpleSNN_Temporal(beta=beta)
-model = SNNModelWrapper(snn_model=snn_core, num_steps=num_steps, tau_latency=tau_latency).to(device)
+# ĐÃ SỬA: Thay thế class cũ bằng BaseSNN và SNNGenericWrapper từ core.models
+snn_core = BaseSNN(beta=beta)
+model = SNNGenericWrapper(
+    snn_model=snn_core, 
+    coding_type=CODING_TYPE, 
+    num_steps=num_steps, 
+    tau_latency=tau_latency
+).to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
@@ -103,6 +111,7 @@ np.save(OUT_DIR / "val_acc.npy", np.array(history["val_acc"]))
 config_dict = {
     "MODEL_NAME": MODEL_NAME,
     "DATASET": DATASET,
+    "CODING_TYPE": CODING_TYPE,
     "EPOCHS": EPOCHS,
     "BATCH_SIZE": BATCH_SIZE,
     "LR": LR,
